@@ -84,6 +84,12 @@ def create_intern(
     for _ in range(5):
         unique_id = generate_unique_id(db)
         photo_path = os.path.join(PHOTO_DIR, f"{unique_id}{ext}")
+
+        # Rewind before every write attempt -- on a retry (IntegrityError
+        # below) the underlying stream is already at EOF from the previous
+        # copy, and skipping this would silently write a 0-byte photo file
+        # while still letting the intern record get created successfully.
+        photo.file.seek(0)
         with open(photo_path, "wb") as f:
             shutil.copyfileobj(photo.file, f)
 
@@ -291,7 +297,8 @@ def download_security_letter_pdf(intern_id: int, db: Session = Depends(get_db),
 
 
 @router.get("/{intern_id}/offer-letter/pdf")
-def download_offer_letter_pdf(intern_id: int, db: Session = Depends(get_db),\n                              admin: Admin = Depends(get_current_admin)):
+def download_offer_letter_pdf(intern_id: int, db: Session = Depends(get_db),
+                               admin: Admin = Depends(get_current_admin)):
     intern = db.query(Intern).filter(Intern.id == intern_id).first()
     if not intern:
         raise HTTPException(status_code=404, detail="Intern not found")
@@ -302,7 +309,8 @@ def download_offer_letter_pdf(intern_id: int, db: Session = Depends(get_db),\n  
 
 
 @router.get("/{intern_id}/certificate/pdf")
-def download_certificate_pdf(intern_id: int, db: Session = Depends(get_db),\n                              admin: Admin = Depends(get_current_admin)):
+def download_certificate_pdf(intern_id: int, db: Session = Depends(get_db),
+                              admin: Admin = Depends(get_current_admin)):
     intern = db.query(Intern).filter(Intern.id == intern_id).first()
     if not intern:
         raise HTTPException(status_code=404, detail="Intern not found")
@@ -310,3 +318,4 @@ def download_certificate_pdf(intern_id: int, db: Session = Depends(get_db),\n   
     buffer = generate_certificate(intern)
     filename = f"{intern.unique_id}_certificate.pdf"
     return _pdf_response(buffer, filename)
+

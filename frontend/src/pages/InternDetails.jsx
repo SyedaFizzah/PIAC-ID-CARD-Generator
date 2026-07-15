@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import client from "../api/client";
+import CreatableSelect from "react-select/creatable";
+import client, { API_BASE_URL } from "../api/client";
+import { skills as skillOptions } from "../data/skills";
 
 const FIELDS = [
   { key: "name", label: "Name" },
@@ -15,6 +17,20 @@ const FIELDS = [
   { key: "end_date", label: "Valid until", type: "date" }, // maps onto Intern.valid_until
 ];
 
+const SKILL_OPTIONS = skillOptions.map((skill) => ({ value: skill, label: skill }));
+
+// "Python, SQL, Leadership" -> [{ value: "Python", label: "Python" }, ...]
+const skillsStringToOptions = (value) =>
+  (value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => ({ value: s, label: s }));
+
+// [{ value: "Python" }, ...] -> "Python, SQL, Leadership"
+const skillsOptionsToString = (options) =>
+  (options || []).map((option) => option.value).join(", ");
+
 export default function InternDetails() {
   const { internId } = useParams();
   const navigate = useNavigate();
@@ -25,6 +41,22 @@ export default function InternDetails() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("loading"); // loading | ready | error
+
+  // Function *expressions* (const x = () => {}) rather than function
+  // *declarations* (function x() {}) -- declarations inside a block get
+  // hoisted, and hoisting behaves inconsistently across browsers/tooling,
+  // so expressions are the safer default here.
+  const toFormValues = (data) => ({
+    name: data.name || "",
+    gender: data.gender || "",
+    university: data.university || "",
+    discipline: data.discipline || "",
+    department: data.department || "",
+    skills: skillsStringToOptions(data.skills),
+    cnic: data.cnic || "",
+    start_date: data.start_date || "",
+    end_date: data.valid_until || "", // "end_date" here is a form-only alias for valid_until
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -44,35 +76,19 @@ export default function InternDetails() {
     };
   }, [internId]);
 
-  function toFormValues(data) {
-    return {
-      name: data.name || "",
-      gender: data.gender || "",
-      university: data.university || "",
-      discipline: data.discipline || "",
-      department: data.department || "",
-      skills: data.skills || "",
-      cnic: data.cnic || "",
-      start_date: data.start_date || "",
-      end_date: data.valid_until || "", // "end_date" here is a form-only alias for valid_until
-    };
-  }
+  const originalValue = (key) => (key === "end_date" ? intern.valid_until : intern[key]);
 
-  function originalValue(key) {
-    return key === "end_date" ? intern.valid_until : intern[key];
-  }
-
-  function handleChange(key, value) {
+  const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  };
 
-  function cancelEdit() {
+  const cancelEdit = () => {
     setForm(toFormValues(intern));
     setEditing(false);
     setError("");
-  }
+  };
 
-  async function saveChanges() {
+  const saveChanges = async () => {
     setSaving(true);
     setError("");
 
@@ -85,7 +101,9 @@ export default function InternDetails() {
     const payload = {};
     for (const { key } of FIELDS) {
       const original = originalValue(key) ?? "";
-      const current = form[key];
+      // Skills lives in form state as an array of react-select options,
+      // but the backend just wants the same comma-joined string it sent us.
+      const current = key === "skills" ? skillsOptionsToString(form.skills) : form[key];
       if (String(current) !== String(original)) {
         payload[key] = current;
       }
@@ -107,7 +125,7 @@ export default function InternDetails() {
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   if (status === "loading") {
     return <div className="p-8 text-sm text-gray-500">Loading intern…</div>;
@@ -138,9 +156,20 @@ export default function InternDetails() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-[#0A5C36]">{intern.name}</h1>
-          <p className="text-sm text-[#A6873C]">ID No: {intern.unique_id}</p>
+        <div className="flex items-center gap-4">
+          <img
+            src={`${API_BASE_URL}/interns/verify/${intern.unique_id}/photo`}
+            alt={intern.name}
+            className="w-20 h-20 rounded-full object-cover border-2 border-[#0A5C36]/30 bg-gray-100"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.style.display = "none";
+            }}
+          />
+          <div>
+            <h1 className="text-xl font-bold text-[#0A5C36]">{intern.name}</h1>
+            <p className="text-sm text-[#A6873C]">ID No: {intern.unique_id}</p>
+          </div>
         </div>
 
         {!editing ? (
@@ -181,11 +210,15 @@ export default function InternDetails() {
             <dd className="flex-1 text-sm">
               {editing ? (
                 key === "skills" ? (
-                  <textarea
-                    value={form[key]}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0A5C36]/40"
-                    rows={3}
+                  <CreatableSelect
+                    options={SKILL_OPTIONS}
+                    value={form.skills}
+                    onChange={(selected) => handleChange("skills", selected || [])}
+                    placeholder="Select or type skills"
+                    isMulti
+                    isSearchable
+                    closeMenuOnSelect={false}
+                    classNamePrefix="react-select"
                   />
                 ) : (
                   <input
@@ -196,6 +229,21 @@ export default function InternDetails() {
                     className="w-full border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0A5C36]/40"
                   />
                 )
+              ) : key === "skills" ? (
+                <div className="flex flex-wrap gap-1">
+                  {form.skills.length === 0 ? (
+                    <span className="text-gray-900">—</span>
+                  ) : (
+                    form.skills.map((skill) => (
+                      <span
+                        key={skill.value}
+                        className="px-2 py-0.5 rounded-full bg-[#EAF2EC] text-[#0A5C36] text-xs"
+                      >
+                        {skill.value}
+                      </span>
+                    ))
+                  )}
+                </div>
               ) : (
                 <span className="text-gray-900">{originalValue(key) || "—"}</span>
               )}
