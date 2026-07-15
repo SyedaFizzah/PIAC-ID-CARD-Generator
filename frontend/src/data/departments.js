@@ -1,0 +1,18 @@
+export const departments = [
+  "Accounts & Finance",
+  "Audit",
+  "Corporate Planning",
+  "Corporate Safety",
+  "Cyber Security",
+  "Engineering",
+  "Employees Resource Planning",
+  "Facilitation Works",
+  "Flight Operations",
+  "Human Resource",
+  "IT",
+  "Marketing",
+  "Networking",
+  "Passenger Handling Services",
+  "Payroll",
+  "Supply Chain & Logistics",
+];

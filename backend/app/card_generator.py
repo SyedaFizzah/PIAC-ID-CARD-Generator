@@ -2,12 +2,14 @@
 PIA Intern ID Card Generator
 
 Front: loads Fizzah's Canva export as the base, overlays photo, name,
-ID number, department, and a QR code (encodes the unique ID for
-attendance scanning in phase 2).
+ID number, department, and a QR code (encodes the intern verification
+URL for attendance scanning / public verification).
 
 Back: T&C + expiry + a repeated QR code, positioned identically to the
 front QR so both sides line up when the card is flipped.
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import qrcode
@@ -24,21 +26,29 @@ FONT_DIR = os.path.join(BASE_DIR, "assets", "fonts")
 FRONT_TEMPLATE_PATH = os.path.join(BASE_DIR, "ID Card Template Front.png")
 BACK_TEMPLATE_PATH = os.path.join(BASE_DIR, "ID Card Template Back.png")
 
+# Base URL the QR codes point at. Override via env var per environment
+# (local/staging/prod) so cards printed in one environment don't point
+# verifiers at the wrong server. Point this at your PUBLIC verify page,
+# not the raw API, once that page exists.
+VERIFY_BASE_URL = os.environ.get("VERIFY_BASE_URL", "http://localhost:5173/verify")
+
 # --- Front layout: single vertical stack, all centered ---
-# QR_BOX is intentionally identical to BACK_QR_BOX so both sides line up
-# when the card is flipped over.
-PHOTO_BOX = (215, 260, 375, 490)    # 160x230 -- rectangular (taller than wide), centered
-NAME_POS = (295, 545)               # +55px gap below photo
-HEADING_POS = (295, 585)            # "INTERN"
+PHOTO_BOX = (215, 260, 375, 490)
+NAME_POS = (295, 545)
+HEADING_POS = (295, 585)
 ID_LABEL_POS = (295, 622)
 DEPT_LABEL_POS = (295, 655)
-QR_BOX = (210, 705, 380, 875)       # +50px gap below Department; matches BACK_QR_BOX
+QR_BOX = (210, 705, 380, 875)
 
-# --- Back layout (measured against your Canva back export, 591x1004) ---
-BACK_ISSUE_POS = (295, 645)         # center point
-BACK_VALID_POS = (295, 680)         # center point
-BACK_QR_BOX = (210, 705, 380, 875)  # same position as front QR_BOX
-BACK_CAPTION_POS = (295, 890)       # center point
+# --- Back layout ---
+BACK_ISSUE_POS = (295, 645)
+BACK_VALID_POS = (295, 680)
+BACK_QR_BOX = (210, 705, 380, 875)
+BACK_CAPTION_POS = (295, 890)
+
+
+def _verify_url(unique_id: str) -> str:
+    return f"{VERIFY_BASE_URL}/{unique_id}"
 
 
 def _font(name, size):
@@ -51,8 +61,6 @@ def _font(name, size):
 
 
 def _fit_font(draw, text, font_name, max_size, max_width, min_size=12):
-    """Shrinks font size until text fits within max_width. Protects long
-    department names from overflowing off the card."""
     size = max_size
     while size > min_size:
         font = _font(font_name, size)
@@ -118,7 +126,7 @@ def generate_front_card(name: str, unique_id: str, department: str,
     draw.text(DEPT_LABEL_POS, dept_text, font=font_dept, fill=PIA_GOLD, anchor="mm")
 
     qr_size = QR_BOX[2] - QR_BOX[0]
-    qr_img = _make_qr(unique_id, qr_size)
+    qr_img = _make_qr(_verify_url(unique_id), qr_size)
     card.paste(qr_img, (QR_BOX[0], QR_BOX[1]), qr_img if qr_img.mode == "RGBA" else None)
     draw.rectangle(QR_BOX, outline=PIA_GREEN, width=2)
 
@@ -144,7 +152,7 @@ def generate_back_card(unique_id: str, issue_date: date, valid_until: date, outp
               font=font_bold, fill=PIA_GOLD, anchor="mm")
 
     qr_size = BACK_QR_BOX[2] - BACK_QR_BOX[0]
-    qr_img = _make_qr(unique_id, qr_size)
+    qr_img = _make_qr(_verify_url(unique_id), qr_size)
     card.paste(qr_img, (BACK_QR_BOX[0], BACK_QR_BOX[1]), qr_img if qr_img.mode == "RGBA" else None)
 
     draw.text(BACK_CAPTION_POS, "Scan for attendance or verification",
@@ -158,7 +166,8 @@ def generate_back_card(unique_id: str, issue_date: date, valid_until: date, outp
 if __name__ == "__main__":
     from datetime import timedelta
     front = generate_front_card(
-        "Syeda Fizzah Masroor", "PIA0726001", "ERP", "I:\PIAC ID CARD\pia-intern-id-system\backend\app\static\photos\DP.png",
+        "Syeda Fizzah Masroor", "PIA0726001", "ERP",
+        r"I:\PIAC ID CARD\pia-intern-id-system\backend\app\static\photos\DP.png",
         os.path.join(BASE_DIR, "static", "cards", "test_front.png"),
     )
     back = generate_back_card(

@@ -12,34 +12,58 @@ class Admin(Base):
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+'''
+class AttendanceLog(Base):
+    __tablename__ = "attendance_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    intern_id = Column(Integer, ForeignKey("interns.id"), nullable=False)
+    scanned_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    intern = relationship("Intern", back_populates="attendance_logs")
+'''
 
 class Intern(Base):
     __tablename__ = "interns"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    # Public card ID
     unique_id = Column(String, unique=True, index=True, nullable=False)
+
+    # Personal details
     name = Column(String, nullable=False)
+    gender = Column(String, nullable=True)
+
+    # Education details
+    university = Column(String, nullable=True)
+    discipline = Column(String, nullable=True)
     department = Column(String, nullable=True)
+
+    # Sensitive information
     cnic = Column(String, nullable=True)
 
+    # Optional commendable skills / achievements
+    skills = Column(String, nullable=True)
+
+    # Internship period
     start_date = Column(Date, nullable=False)
     duration_weeks = Column(Integer, nullable=False)
     valid_until = Column(Date, nullable=False)
 
+    # Files
     photo_path = Column(String, nullable=True)
     card_front_path = Column(String, nullable=True)
     card_back_path = Column(String, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
 
-    attendance_logs = relationship("AttendanceLog", back_populates="intern")
-class AttendanceLog(Base):
-    """Placeholder for phase 2 (barcode scan in/out). Not wired up yet."""
-    __tablename__ = "attendance_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    intern_id = Column(Integer, ForeignKey("interns.id"), nullable=False)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
-    direction = Column(String, nullable=False)  # "in" or "out"
-
-    intern = relationship("Intern", back_populates="attendance_logs")
+'''
+    attendance_logs = relationship(
+        "AttendanceLog",
+        back_populates="intern"
+    )
+'''
