@@ -41,6 +41,8 @@ export default function InternDetails() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoCacheBust, setPhotoCacheBust] = useState(0);
 
   // Function *expressions* (const x = () => {}) rather than function
   // *declarations* (function x() {}) -- declarations inside a block get
@@ -127,6 +129,34 @@ export default function InternDetails() {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const { data } = await client.post(`/interns/${internId}/photo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setIntern(data);
+      // The photo URL itself doesn't change (it's keyed on unique_id, not
+      // filename), so the browser will happily keep showing the cached old
+      // image unless we bust the cache with a query param.
+      setPhotoCacheBust((n) => n + 1);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Couldn't upload photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   if (status === "loading") {
     return <div className="p-8 text-sm text-gray-500">Loading intern…</div>;
   }
@@ -157,15 +187,30 @@ export default function InternDetails() {
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <img
-            src={`${API_BASE_URL}/interns/verify/${intern.unique_id}/photo`}
-            alt={intern.name}
-            className="w-20 h-20 rounded-full object-cover border-2 border-[#0A5C36]/30 bg-gray-100"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <div className="relative w-20 h-20 shrink-0">
+            <img
+              src={`${API_BASE_URL}/interns/verify/${intern.unique_id}/photo?v=${photoCacheBust}`}
+              alt={intern.name}
+              className="w-20 h-20 rounded-full object-cover border-2 border-[#0A5C36]/30 bg-gray-100"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.style.display = "none";
+              }}
+            />
+            <label
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 hover:bg-black/40 text-transparent hover:text-white text-[10px] font-semibold cursor-pointer transition-colors"
+              title="Change photo"
+            >
+              {uploadingPhoto ? "…" : "Change"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                disabled={uploadingPhoto}
+                className="hidden"
+              />
+            </label>
+          </div>
           <div>
             <h1 className="text-xl font-bold text-[#0A5C36]">{intern.name}</h1>
             <p className="text-sm text-[#A6873C]">ID No: {intern.unique_id}</p>
