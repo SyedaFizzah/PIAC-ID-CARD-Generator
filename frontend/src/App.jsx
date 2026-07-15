@@ -2,16 +2,34 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AddIntern from "./pages/AddIntern.jsx";
+import InternDetails from "./pages/InternDetails.jsx";
+import VerifyIntern from "./pages/VerifyIntern.jsx";
+
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("pia_admin_token");
+
   return token ? children : <Navigate to="/login" replace />;
 }
+
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+
+      {/* Public */}
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/verify/:uniqueId"
+        element={<VerifyIntern />}
+      />
+
+
+      {/* Admin */}
       <Route
         path="/"
         element={
@@ -20,6 +38,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+
       <Route
         path="/add-intern"
         element={
@@ -28,6 +48,19 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+
+      <Route
+        path="/interns/:internId"
+        element={
+          <ProtectedRoute>
+            <InternDetails />
+          </ProtectedRoute>
+        }
+      />
+
+
     </Routes>
   );
 }
+

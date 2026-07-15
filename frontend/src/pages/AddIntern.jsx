@@ -1,37 +1,44 @@
 import { useState } from "react";
+import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 import { useNavigate, Link } from "react-router-dom";
 import client from "../api/client";
+import { universities } from "../data/universities";
+import { disciplines } from "../data/disciplines";
+import { genders } from "../data/genders";
+import { departments } from "../data/departments";
+import { skills as skillOptions } from "../data/skills";
 
 export default function AddIntern() {
   const [name, setName] = useState("");
-  const [department, setDepartment] = useState("");
+  const [university, setUniversity] = useState("");
+  const [discipline, setDiscipline] = useState("");
+  const [gender, setGender] = useState("");
   const [cnic, setCnic] = useState("");
+  const [department, setDepartment] = useState("");
+  const [skills, setSkills] = useState([]);
   const [startDate, setStartDate] = useState("");
-  const [durationWeeks, setDurationWeeks] = useState(8);
+  const [endDate, setEndDate] = useState("");
   const [photo, setPhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
-  const departments = [
-    "Employees Resource Planning",
-    "IT",
-    "Facilitation Works",
-    "Flight Operations",
-    "Corporate Safety",
-    "Engineering",
-    "Passenger Handling Services",
-    "Accounts & Finance",
-    "Audit",
-    "Supply Chain & Logistics",
-    "Corporate Planning",
-    "Cyber Security",
-    "Networking",
-    "Human Resource",
-    "Marketing",
-    "Payroll",
-  ];
+  const universityOptions = universities.map((uni) => ({
+    value: uni,
+    label: uni,
+  }));
+
+  const disciplineOptions = disciplines.map((discipline) => ({
+    value: discipline,
+    label: discipline,
+  }));
+
+  const departmentOptions = departments.map((dept) => ({
+    value: dept,
+    label: dept,
+  }));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,13 +53,23 @@ export default function AddIntern() {
       return;
     }
 
+    if (new Date(endDate) <= new Date(startDate)) {
+      setError("End date must be after the start date.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("name", name);
+      formData.append("university", university);
+      formData.append("discipline", discipline);
       formData.append("department", department);
+      formData.append("skills", skills.map((item) => item.value).join(", "));
+      formData.append("gender", gender);
       formData.append("cnic", cnic);
       formData.append("start_date", startDate);
-      formData.append("duration_weeks", durationWeeks);
+      formData.append("end_date", endDate);
 
       if (photo) {
         formData.append("photo", photo);
@@ -110,24 +127,56 @@ export default function AddIntern() {
 
             setName(formatted);
           }}
-          placeholder="e.g. Fizzah Masroor"
           required
         />
 
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Department *
+          University *
         </label>
+
+        <Select
+          options={universityOptions}
+          value={universityOptions.find(
+            (option) => option.value === university
+          )}
+          onChange={(selected) => setUniversity(selected.value)}
+          placeholder="Select University"
+          isSearchable
+          className="mb-4"
+          classNamePrefix="react-select"
+        />
+
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Discipline *
+        </label>
+
+        <Select
+          options={disciplineOptions}
+          value={disciplineOptions.find(
+            (option) => option.value === discipline
+          )}
+          onChange={(selected) => setDiscipline(selected.value)}
+          placeholder="Select Discipline"
+          isSearchable
+          className="mb-4"
+          classNamePrefix="react-select"
+        />
+
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Gender *
+        </label>
+
         <select
           className="w-full border rounded-lg px-3 py-2 mb-4"
-          value={department}
-          onChange={(e) => setDepartment(e.target.value)}
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
           required
         >
-          <option value="">Select Department</option>
+          <option value="">Select Gender</option>
 
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
+          {genders.map((g) => (
+            <option key={g} value={g}>
+              {g}
             </option>
           ))}
         </select>
@@ -168,6 +217,36 @@ export default function AddIntern() {
           required
         />
 
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Department *
+        </label>
+        <Select
+          options={departmentOptions}
+          value={departmentOptions.find(
+            (option) => option.value === department
+          )}
+          onChange={(selected) => setDepartment(selected.value)}
+          placeholder="Select Department"
+          isSearchable
+          className="mb-4"
+          classNamePrefix="react-select"
+        />
+
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Skills
+        </label>
+        <CreatableSelect
+          options={skillOptions.map((skill) => ({ value: skill, label: skill }))}
+          value={skills}
+          onChange={(newValue) => setSkills(newValue || [])}
+          placeholder="Select or type skills"
+          isMulti
+          isSearchable
+          closeMenuOnSelect={false}
+          className="mb-4"
+          classNamePrefix="react-select"
+        />
+
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -184,14 +263,15 @@ export default function AddIntern() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Duration (weeks) *
+              End Date *
             </label>
+
             <input
-              type="number"
-              min="1"
+              type="date"
               className="w-full border rounded-lg px-3 py-2"
-              value={durationWeeks}
-              onChange={(e) => setDurationWeeks(e.target.value)}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate}
               required
             />
           </div>
