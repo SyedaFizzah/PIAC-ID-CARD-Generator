@@ -192,6 +192,9 @@ export default function InternDetails() {
               src={`${API_BASE_URL}/interns/verify/${intern.unique_id}/photo?v=${photoCacheBust}`}
               alt={intern.name}
               className="w-20 h-20 rounded-full object-cover border-2 border-[#0A5C36]/30 bg-gray-100"
+              onLoad={(e) => {
+                e.currentTarget.style.display = "";
+              }}
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.style.display = "none";

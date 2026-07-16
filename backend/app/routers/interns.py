@@ -1,39 +1,27 @@
 import os
-import re
-import io
+import math
 import shutil
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from PIL import Image
-import math
 
 from ..database import get_db
 from ..models import Intern, Admin
 from ..schemas import InternOut, InternVerifyOut, InternUpdate
 from ..auth import get_current_admin
 from ..id_generator import generate_unique_id
-from ..date_utils import calculate_valid_until
-from ..card_generator import generate_front_card, generate_back_card
-from ..document_generator import (
-    generate_security_letter,
-    generate_offer_letter,
-    generate_certificate,
-)
+from ..paths import PHOTO_DIR
 
 router = APIRouter(prefix="/interns", tags=["interns"])
 
-PHOTO_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "photos")
-CARD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "cards")
-
-
-def _safe_filename(name: str) -> str:
-    """Strip characters that are illegal in filenames on Windows/macOS/Linux."""
-    cleaned = re.sub(r'[\\/:*?"<>|]+', "", name).strip()
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned or "intern"
+_PHOTO_MEDIA_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 @router.post("", response_model=InternOut)
@@ -60,10 +48,10 @@ def create_intern(
     skills = skills.strip() if skills else None
 
     if not name or not university or not discipline or not department or not cnic:
-      raise HTTPException(
-        status_code=400,
-        detail="Name, university, discipline, department, and CNIC are required."
-    )
+        raise HTTPException(
+            status_code=400,
+            detail="Name, university, discipline, department, and CNIC are required.",
+        )
 
     if end_date <= start_date:
         raise HTTPException(status_code=400, detail="End date must be after the start date.")
@@ -79,7 +67,7 @@ def create_intern(
     valid_until = end_date
 
     os.makedirs(PHOTO_DIR, exist_ok=True)
-    ext = os.path.splitext(photo.filename)[1] or ".jpg"
+    ext = os.path.splitext(photo.filename)[1] or ".jpg" or ".jpeg" or ".png" or ".webp"
 
     for _ in range(5):
         unique_id = generate_unique_id(db)
@@ -95,19 +83,14 @@ def create_intern(
 
         intern = Intern(
             unique_id=unique_id,
-
             name=name,
             gender=gender,
             skills=skills,
-
             university=university,
             discipline=discipline,
             department=department,
-
             cnic=cnic,
-
             photo_path=photo_path,
-
             start_date=start_date,
             duration_weeks=duration_weeks,
             valid_until=valid_until,
@@ -148,13 +131,7 @@ def verify_intern_photo(unique_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Photo not found")
 
     ext = os.path.splitext(intern.photo_path)[1].lower()
-    media_type = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }.get(ext, "application/octet-stream")
-
+    media_type = _PHOTO_MEDIA_TYPES.get(ext, "application/octet-stream")
     return FileResponse(intern.photo_path, media_type=media_type)
 
 
@@ -165,6 +142,38 @@ def get_intern(intern_id: int, db: Session = Depends(get_db), admin: Admin = Dep
         raise HTTPException(status_code=404, detail="Intern not found")
     return intern
 
+@router.post("/{intern_id}/photo", response_model=InternOut)
+def update_intern_photo(
+    intern_id: int,
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    intern = db.query(Intern).filter(Intern.id == intern_id).first()
+    if not intern:
+        raise HTTPException(status_code=404, detail="Intern not found")
+
+    if not photo or not photo.filename:
+        raise HTTPException(status_code=400, detail="A photo file is required.")
+
+    os.makedirs(PHOTO_DIR, exist_ok=True)
+    ext = os.path.splitext(photo.filename)[1] or ".jpg"
+    new_photo_path = os.path.join(PHOTO_DIR, f"{intern.unique_id}{ext}")
+
+    photo.file.seek(0)
+    with open(new_photo_path, "wb") as f:
+        shutil.copyfileobj(photo.file, f)
+
+    # If the extension changed (e.g. old was .png, new upload is .jpg),
+    # clean up the stale file so we don't accumulate orphans on disk.
+    old_path = intern.photo_path
+    if old_path and old_path != new_photo_path and os.path.exists(old_path):
+        os.remove(old_path)
+
+    intern.photo_path = new_photo_path
+    db.commit()
+    db.refresh(intern)
+    return intern
 
 @router.patch("/{intern_id}", response_model=InternOut)
 def update_intern(
@@ -221,101 +230,5 @@ def update_intern(
     return intern
 
 
-@router.post("/{intern_id}/generate-card")
-def generate_card(intern_id: int, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
 
-    front_path = os.path.join(CARD_DIR, f"{intern.unique_id}_front.png")
-    back_path = os.path.join(CARD_DIR, f"{intern.unique_id}_back.png")
-
-    generate_front_card(intern.name, intern.unique_id, intern.department, intern.photo_path, front_path)
-    generate_back_card(intern.unique_id, intern.start_date, intern.valid_until, back_path)
-
-    intern.card_front_path = front_path
-    intern.card_back_path = back_path
-    db.commit()
-
-    return {"unique_id": intern.unique_id, "card_front_path": front_path, "card_back_path": back_path}
-
-
-@router.get("/{intern_id}/card")
-def download_card(intern_id: int, side: str = "front", db: Session = Depends(get_db),
-                   admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-
-    path = intern.card_front_path if side == "front" else intern.card_back_path
-    if not path or not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Card not generated yet")
-
-    return FileResponse(path, media_type="image/png", filename=f"{intern.unique_id}_{side}.png")
-
-
-def _pdf_response(buffer: io.BytesIO, filename: str):
-    return StreamingResponse(
-        buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
-
-
-@router.get("/{intern_id}/card/pdf")
-def download_card_pdf(intern_id: int, db: Session = Depends(get_db),
-                       admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-
-    if not intern.card_front_path or not intern.card_back_path or \
-       not os.path.exists(intern.card_front_path) or not os.path.exists(intern.card_back_path):
-        raise HTTPException(status_code=404, detail="Card not generated yet")
-
-    front = Image.open(intern.card_front_path).convert("RGB")
-    back = Image.open(intern.card_back_path).convert("RGB")
-
-    buffer = io.BytesIO()
-    front.save(buffer, format="PDF", save_all=True, append_images=[back], resolution=300.0)
-    buffer.seek(0)
-
-    filename = f"{intern.unique_id}.pdf"
-    return _pdf_response(buffer, filename)
-
-
-@router.get("/{intern_id}/security-letter/pdf")
-def download_security_letter_pdf(intern_id: int, db: Session = Depends(get_db),
-                                  admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-
-    buffer = generate_security_letter(intern)
-    filename = f"{intern.unique_id}_security_letter.pdf"
-    return _pdf_response(buffer, filename)
-
-
-@router.get("/{intern_id}/offer-letter/pdf")
-def download_offer_letter_pdf(intern_id: int, db: Session = Depends(get_db),
-                               admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-
-    buffer = generate_offer_letter(intern)
-    filename = f"{intern.unique_id}_offer_letter.pdf"
-    return _pdf_response(buffer, filename)
-
-
-@router.get("/{intern_id}/certificate/pdf")
-def download_certificate_pdf(intern_id: int, db: Session = Depends(get_db),
-                              admin: Admin = Depends(get_current_admin)):
-    intern = db.query(Intern).filter(Intern.id == intern_id).first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-
-    buffer = generate_certificate(intern)
-    filename = f"{intern.unique_id}_certificate.pdf"
-    return _pdf_response(buffer, filename)
 

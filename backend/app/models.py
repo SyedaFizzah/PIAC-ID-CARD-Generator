@@ -10,18 +10,7 @@ class Admin(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-'''
-class AttendanceLog(Base):
-    __tablename__ = "attendance_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    intern_id = Column(Integer, ForeignKey("interns.id"), nullable=False)
-    scanned_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    intern = relationship("Intern", back_populates="attendance_logs")
-'''
 
 class Intern(Base):
     __tablename__ = "interns"
@@ -33,6 +22,7 @@ class Intern(Base):
 
     # Personal details
     name = Column(String, nullable=False)
+    father_name = Column(String, nullable=True)
     gender = Column(String, nullable=True)
 
     # Education details
@@ -53,17 +43,30 @@ class Intern(Base):
 
     # Files
     photo_path = Column(String, nullable=True)
-    card_front_path = Column(String, nullable=True)
-    card_back_path = Column(String, nullable=True)
+    ID_card_front_path = Column(String, nullable=True)
+    ID_card_back_path = Column(String, nullable=True)
+    CV_path = Column(String, nullable=True)
 
-    created_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now()
-    )
+class Mentor(Base):
+    __tablename__ = "mentors"
 
-'''
-    attendance_logs = relationship(
-        "AttendanceLog",
-        back_populates="intern"
-    )
-'''
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    designation = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+
+class Manager(Base):
+    __tablename__ = "managers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    designation = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+
+class Supervisor(Base):
+    __tablename__ = "supervisors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    designation = Column(String, nullable=False)
+    department = Column(String, nullable=False)

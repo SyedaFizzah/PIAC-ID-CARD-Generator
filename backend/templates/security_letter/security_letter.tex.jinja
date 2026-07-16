@@ -1,0 +1,78 @@
+% ============================================================
+% PIA Security Permission Letter — dynamic candidate table (0-15 rows)
+% ============================================================
+\documentclass[12pt]{article}
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.3cm, right=2.3cm]{geometry}
+\usepackage{fontspec}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+
+\setmainfont{Times New Roman}
+\setstretch{1.2}
+\pagestyle{empty}
+
+\begin{document}
+
+\noindent \textbf{\VAR{issue_date}}
+
+\vspace{1em}
+\noindent \textbf{To}\\
+The Security Incharge\\
+PIA Head Office
+
+\vspace{1em}
+\noindent \textbf{Subject: \VAR{subject_line}}
+
+\vspace{1em}
+\noindent Dear Sir/Madam,
+
+\vspace{0.6em}
+\noindent We are pleased to inform you that the following students will be undertaking their internship in the \VAR{section_name} at PIA Head Office:
+
+\vspace{1em}
+
+% ---- dynamic candidate table: 0-15 rows -------------------------------
+\BLOCK{if candidates}
+\noindent
+\begin{tabular}{@{}c p{7.5cm} p{4.5cm}@{}}
+\toprule
+\textbf{S.NO} & \textbf{Student Name} & \textbf{CNIC Number} \\
+\midrule
+\BLOCK{for c in candidates}
+\textbf{\VAR{loop.index}} & \VAR{c.name} & \VAR{c.cnic} \\
+\addlinespace
+\BLOCK{endfor}
+\bottomrule
+\end{tabular}
+\BLOCK{else}
+\noindent
+\begin{tabular}{@{}c p{7.5cm} p{4.5cm}@{}}
+\toprule
+\textbf{S.NO} & \textbf{Student Name} & \textbf{CNIC Number} \\
+\midrule
+\multicolumn{3}{c}{\textit{No candidates listed}} \\
+\bottomrule
+\end{tabular}
+\BLOCK{endif}
+% -------------------------------------------------------------------------
+
+\vspace{1.2em}
+\noindent These students will be \textbf{undertaking an internship} under the supervision of the \textbf{\VAR{supervisor_title}} in the \VAR{section_name} from \textbf{\VAR{start_date}} to \textbf{\VAR{end_date}}. Their presence is authorized for the purpose of gaining practical experience within our organization.
+
+\vspace{0.8em}
+\noindent We kindly request you to grant them access permission and ensure that their entry and exit are recorded in accordance with the organization's security policies.
+
+\vspace{0.8em}
+\noindent Thank you for your cooperation.
+
+\vspace{2.5em}
+\noindent
+\begin{tabular}{@{}l@{}}
+\textbf{\VAR{signatory_name}}\\
+\textbf{\VAR{signatory_title}}\\
+Pakistan International Airline
+\end{tabular}
+
+\end{document}

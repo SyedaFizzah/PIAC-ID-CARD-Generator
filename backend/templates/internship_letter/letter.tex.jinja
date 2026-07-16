@@ -1,0 +1,54 @@
+% ============================================================
+% PIA Internship Certificate — A4, PIA letterhead background
+% ============================================================
+\documentclass[12pt]{article}
+\usepackage[a4paper, top=6.5cm, bottom=3cm, left=2.3cm, right=2.3cm]{geometry}
+\usepackage{fontspec}
+\usepackage{setspace}
+\usepackage{eso-pic}
+\usepackage{graphicx}
+
+\setmainfont{Times New Roman}
+\setstretch{1.25}
+\pagestyle{empty}
+
+% Full-bleed letterhead image behind every page
+\AddToShipoutPictureBG*{%
+  \AtPageUpperLeft{%
+    \raisebox{-\paperheight}{\includegraphics[width=\paperwidth,height=\paperheight]{\VAR{letterhead_path}}}%
+  }%
+}
+
+\begin{document}
+
+\noindent \VAR{recipient_name}\\
+Student of \VAR{degree_title}\\
+\VAR{university_name}\\
+\VAR{issue_date}
+
+\vspace{1.2em}
+\begin{center}
+\textbf{\large INTERNSHIP CERTIFICATE}
+\end{center}
+\vspace{0.6em}
+
+\noindent This is to certify that \VAR{recipient_title} \VAR{recipient_name}, a bright student of \VAR{degree_title} from \VAR{university_name}, has successfully completed a \VAR{duration_text} internship program with Pakistan International Airlines (PIA) from \VAR{start_date} to \VAR{end_date}.
+
+\vspace{0.8em}
+\noindent During the internship, \VAR{recipient_title} \VAR{recipient_name} made significant contributions to the \VAR{department}, actively participating in \VAR{project_description} and demonstrating strong technical proficiency in \VAR{skills}. Throughout the internship, \VAR{pronoun_subject} showed great enthusiasm and professionalism.
+
+\vspace{0.8em}
+\noindent \VAR{pronoun_subject_cap} demonstrated keen interest and dedication in acquiring knowledge of departmental functions, consistently showing a high level of commitment, analytical ability, and problem-solving skills. \VAR{pronoun_possessive_cap} inquisitiveness and strong work ethic enabled \VAR{pronoun_object} to deliver quality outcomes and gain a deeper understanding of the assigned tasks.
+
+\vspace{0.8em}
+\noindent We deeply appreciate \VAR{pronoun_possessive} hard work, professionalism and exceptional performance, and we are confident that \VAR{pronoun_subject} will achieve great success in \VAR{pronoun_possessive} future career. We wish \VAR{pronoun_object} all the best in \VAR{pronoun_possessive} professional and academic pursuits.
+
+\vspace{2.5em}
+\noindent
+\begin{tabular}{@{}l@{}}
+\VAR{signatory_title}\\[0.3em]
+\textbf{\VAR{signatory_name}}\\
+Pakistan International Airlines
+\end{tabular}
+
+\end{document}

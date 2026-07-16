@@ -23,8 +23,9 @@ PIA_CREAM = "#F5F0E6"
 BASE_DIR = os.path.dirname(__file__)
 FONT_DIR = os.path.join(BASE_DIR, "assets", "fonts")
 
-FRONT_TEMPLATE_PATH = os.path.join(BASE_DIR, "ID Card Template Front.png")
-BACK_TEMPLATE_PATH = os.path.join(BASE_DIR, "ID Card Template Back.png")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+FRONT_TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "ID Card Template Front.png")
+BACK_TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "ID Card Template Back.png")
 
 # Base URL the QR codes point at. Override via env var per environment
 # (local/staging/prod) so cards printed in one environment don't point
@@ -161,17 +162,3 @@ def generate_back_card(unique_id: str, issue_date: date, valid_until: date, outp
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     card.save(output_path, "PNG")
     return output_path
-
-
-if __name__ == "__main__":
-    from datetime import timedelta
-    front = generate_front_card(
-        "Syeda Fizzah Masroor", "PIA0726001", "ERP",
-        r"I:\PIAC ID CARD\pia-intern-id-system\backend\app\static\photos\DP.png",
-        os.path.join(BASE_DIR, "static", "cards", "test_front.png"),
-    )
-    back = generate_back_card(
-        "PIA0726001", date.today(), date.today() + timedelta(weeks=8),
-        os.path.join(BASE_DIR, "static", "cards", "test_back.png"),
-    )
-    print("saved", front, back)

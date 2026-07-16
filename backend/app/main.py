@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from .database import Base, engine
-from .routers import auth, interns
+from .routers import auth, cards, documents, interns, certificates, security_letters
 
 load_dotenv()
 
@@ -29,6 +29,11 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(interns.router)
+app.include_router(cards.router)
+app.include_router(documents.router)
+app.include_router(certificates.router)
+app.include_router(security_letters.router)
+
 
 
 @app.get("/")

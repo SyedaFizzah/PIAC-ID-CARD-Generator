@@ -1,0 +1,68 @@
+% ============================================================
+% PIA Intern ID Card — CR80 (85.6mm x 54mm)
+% Rendered per-intern via Jinja2 -> compiled with xelatex
+% (custom Jinja delimiters used to avoid clashing with LaTeX braces)
+% ============================================================
+\documentclass[10pt]{standalone}
+\usepackage[paperwidth=85.6mm,paperheight=54mm,margin=0mm]{geometry}
+\usepackage{tikz}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usetikzlibrary{shadings,calc}
+
+\setmainfont{Arial}[
+  UprightFont = *,
+  BoldFont = * Bold
+]
+
+\definecolor{piagreen}{HTML}{1F5C3F}
+\definecolor{piagold}{HTML}{C9A227}
+\definecolor{cardblue}{HTML}{1B4F91}
+\definecolor{maroon}{HTML}{8B1E1E}
+
+\pagestyle{empty}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+
+  % ---- card background ----
+  \fill[white] (0,0) rectangle (85.6,54);
+  \draw[line width=0.3pt, gray] (0,0) rectangle (85.6,54);
+
+  % ---- left vertical bar ----
+  \fill[piagreen] (0,0) rectangle (9,54);
+  \node[rotate=90, white, font=\bfseries\fontsize{7}{7}\selectfont] at (4.5,27) {Pakistan International};
+
+  % ---- diagonal accent swoosh (bottom) ----
+  \begin{scope}
+    \clip (9,0) rectangle (85.6,54);
+    \fill[cardblue, opacity=0.9] (9,10) -- (85.6,18) -- (85.6,10) -- (9,4) -- cycle;
+  \end{scope}
+
+  % ---- logo / header ----
+  \node[anchor=north west, font=\bfseries\fontsize{9}{9}\selectfont, piagreen] at (12,52) {PIA};
+  \node[anchor=north west, font=\fontsize{5}{5}\selectfont, gray] at (12,48.5) {Pakistan International};
+
+  % ---- photo box ----
+  \draw[line width=0.3pt, gray] (58,26) rectangle (80,49);
+  \BLOCK{if photo_path}
+  \node at (69,37.5) {\includegraphics[width=22mm,height=23mm]{\VAR{photo_path}}};
+  \BLOCK{else}
+  \node[font=\fontsize{6}{6}\selectfont, gray] at (69,37.5) {PHOTO};
+  \BLOCK{endif}
+
+  % ---- name / designation / id ----
+  \node[anchor=north west, font=\bfseries\fontsize{7}{7}\selectfont, black] at (12,40) {\VAR{name}};
+  \node[anchor=north west, font=\fontsize{5.5}{5.5}\selectfont, black] at (12,35.5) {\VAR{designation}};
+  \node[anchor=north west, font=\fontsize{5.5}{5.5}\selectfont, black] at (12,31.5) {ID: \VAR{intern_id}};
+  \node[anchor=north west, font=\fontsize{5.5}{5.5}\selectfont, black] at (12,27.5) {\VAR{department}};
+
+  % ---- QR code, bottom-left of body ----
+  \BLOCK{if qr_path}
+  \node[anchor=south west] at (12,4) {\includegraphics[width=12mm,height=12mm]{\VAR{qr_path}}};
+  \BLOCK{endif}
+
+  % ---- validity ----
+  \node[anchor=south west, font=\bfseries\fontsize{6}{6}\selectfont, maroon] at (30,4) {Valid Upto \VAR{valid_upto}};
+
+\end{tikzpicture}
+\end{document}
