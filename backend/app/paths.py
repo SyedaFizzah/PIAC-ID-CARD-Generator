@@ -5,6 +5,9 @@ BASE_DIR = os.path.dirname(__file__)
 PHOTO_DIR = os.path.join(BASE_DIR, "static", "photos")
 CARD_DIR = os.path.join(BASE_DIR, "static", "cards")
 
+os.makedirs(PHOTO_DIR, exist_ok=True)
+os.makedirs(CARD_DIR, exist_ok=True)
+
 CERT_DIR = os.path.join(BASE_DIR, "static", "certificates")
 SECURITY_LETTER_DIR = os.path.join(BASE_DIR, "static", "security_letters")
 os.makedirs(CERT_DIR, exist_ok=True)

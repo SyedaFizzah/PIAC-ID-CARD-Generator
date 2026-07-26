@@ -30,6 +30,11 @@ def latex_escape(s):
         s = s.replace(k, v)
     return s
 
+def _ordinal_date(d) -> str:
+    day = d.day
+    suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+    return d.strftime(f'%-d{suffix} %B %Y') if os.name != 'nt' else d.strftime(f'%#d{suffix} %B %Y')
+   
 
 def render_letter(data: dict, out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -51,29 +56,32 @@ def render_letter(data: dict, out_dir: Path) -> Path:
         raise RuntimeError("xelatex failed")
     return out_dir / f"{data['file_stub']}.pdf"
 
+def _get_intern_or_404(intern_id: int, db: Session) -> Intern:
+    if not (intern := db.query(Intern).filter(Intern.id == intern_id).first()):
+        raise HTTPException(status_code=404, detail="Intern not found")
+    return intern
 
 if __name__ == '__main__':
     out = HERE / 'build'
     if out.exists():
         shutil.rmtree(out)
 
-    sample = {
-        'file_stub': 'sample_letter',
-        'gender': 'female',
-        'recipient_title': 'Ms.',
-        'recipient_name': 'Syeda Fizzah Masroor',
-        'degree_title': 'Bachelor of Computer Science (AI)',
-        'university_name': 'NED University of Engineering and Technology',
-        'issue_date': '04 September, 2026',
-        'duration_text': 'Two Months',
-        'start_date': '08th July 2026',
-        'end_date': '04th September 2026',
-        'department': 'ERP Section',
-        'project_description': 'the intern ID card generation system and AI email assistant',
-        'skills': 'Python, FastAPI, React, and PostgreSQL',
-        'signatory_title': 'GM Information Technology',
-        'signatory_name': 'Waqas Ahmed',
-        'letterhead_path': str(HERE / 'assets' / 'letterhead.jpeg'),
+data = {
+        'recipient_title': _TITLES[gender_key],
+        'recipient_name': intern.name,
+        'degree_title': intern.degree_title,
+        'university_name': intern.university_name,
+        'issue_date': _ordinal_date(intern.valid_until),
+        'start_date': _ordinal_date(intern.start_date),
+        'end_date': _ordinal_date(intern.valid_until),
+        'department': intern.department,
+        'project_description': intern.project_description,
+        'skills': intern.skills,
+        'signatory_title': supervisor.designation,
+        'signatory_name': supervisor.name,
+        'letterhead_path': LETTERHEAD_PATH.replace('\\', '/'),
     }
-    pdf = render_letter(sample, out)
-    print(f"Built: {pdf}")
+
+
+pdf = render_letter(sample, out)
+print(f"Built: {pdf}")

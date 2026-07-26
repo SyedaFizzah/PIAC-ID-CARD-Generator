@@ -7,7 +7,7 @@ from ..database import get_db
 from ..models import Intern, Admin
 from ..auth import get_current_admin
 from ..certificate_generator import generate_certificate
-from ..paths import CERT_DIR  # add CERT_DIR = os.path.join(DATA_DIR, "certificates") to paths.py
+from ..paths import CERT_DIR
 
 router = APIRouter(prefix="/interns", tags=["certificates"])
 
@@ -26,9 +26,11 @@ def generate_certificate_route(intern_id: int, db: Session = Depends(get_db),
 
     out_dir = os.path.join(CERT_DIR, intern.unique_id)
     try:
-        pdf_path = generate_certificate(intern, out_dir)
+        pdf_path = generate_certificate(intern, out_dir, session=db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     intern.certificate_path = pdf_path
     db.commit()

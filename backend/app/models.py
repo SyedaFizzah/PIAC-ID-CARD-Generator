@@ -16,22 +16,26 @@ class Intern(Base):
     __tablename__ = "interns"
 
     id = Column(Integer, primary_key=True, index=True)
-
-    # Public card ID
     unique_id = Column(String, unique=True, index=True, nullable=False)
 
     # Personal details
     name = Column(String, nullable=False)
-    father_name = Column(String, nullable=True)
-    gender = Column(String, nullable=True)
+    father_name = Column(String, nullable=False)
+    gender = Column(String, nullable=False)
 
     # Education details
-    university = Column(String, nullable=True)
-    discipline = Column(String, nullable=True)
-    department = Column(String, nullable=True)
+    university = Column(String, nullable=False)
+    discipline = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+
+    # Certificate-only fields, editable after creation
+    project_description = Column(String, nullable=True)
+    certificate_path = Column(String, nullable=True)
 
     # Sensitive information
-    cnic = Column(String, nullable=True)
+    cnic = Column(String, nullable=False)
+    cnic_front_path = Column(String, nullable=True)
+    cnic_back_path = Column(String, nullable=True)
 
     # Optional commendable skills / achievements
     skills = Column(String, nullable=True)
@@ -42,18 +46,22 @@ class Intern(Base):
     valid_until = Column(Date, nullable=False)
 
     # Files
-    photo_path = Column(String, nullable=True)
-    ID_card_front_path = Column(String, nullable=True)
-    ID_card_back_path = Column(String, nullable=True)
-    CV_path = Column(String, nullable=True)
+    photo_path = Column(String, nullable=False)
+    ID_card_front_path = Column(String, nullable=True)   # reverted to nullable — card is generated AFTER intern creation
+    ID_card_back_path = Column(String, nullable=True)    # same
+    university_id_card_front_path = Column(String, nullable=True)
+    university_id_card_back_path = Column(String, nullable=True)
+    CV_path = Column(String, nullable=True)               # optional, asked for at creation
 
-class Mentor(Base):
-    __tablename__ = "mentors"
+    # Staff links — needed for card designation + both letters + certificate
+    mentor_id = Column(Integer, ForeignKey("mentors.id"), nullable=True)
+    supervisor_id = Column(Integer, ForeignKey("supervisors.id"), nullable=True)
+    manager_id = Column(Integer, ForeignKey("managers.id"), nullable=True)
+    mentor = relationship("Mentor")
+    supervisor = relationship("Supervisor")
+    manager = relationship("Manager")
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    designation = Column(String, nullable=False)
-    department = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 class Manager(Base):
     __tablename__ = "managers"

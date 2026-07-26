@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..database import get_db
 from ..models import Intern, Admin
-from ..schemas import InternOut, InternVerifyOut, InternUpdate
+from ..schemas import InternUpdate, InternCreate
 from ..auth import get_current_admin
 from ..id_generator import generate_unique_id
 from ..paths import PHOTO_DIR
