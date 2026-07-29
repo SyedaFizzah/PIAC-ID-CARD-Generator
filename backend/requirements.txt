@@ -6,7 +6,12 @@ pydantic==2.9.2
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.12
-pillow==10.4.0
 python-dotenv==1.0.1
 qrcode==7.4.2
+pillow==10.4.0
 jinja2
+reportlab==4.2.5
+docxtpl==0.18.0
+docx2pdf==0.1.8
+PyMuPDF==1.24.10
+pywin32
