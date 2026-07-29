@@ -51,13 +51,13 @@ TERMS_BODY = (
 # Actual card page size from the template (2.125in x 3.303in)
 CARD_W = 2.125 * inch
 CARD_H = 3.303 * inch
-GAP = 0.15 * inch
+GAP = 2.0 * inch
 
 
 def _ensure_sample_assets() -> tuple[Path, Path]:
     """Create sample photo/QR under assets/ if they are missing (for local testing)."""
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    photo_path = ASSETS_DIR / "sample_photo.png"
+    photo_path = ASSETS_DIR / "sample_photo.jpeg"
     qr_path = ASSETS_DIR / "sample_qr.png"
 
     if not photo_path.exists():
@@ -200,6 +200,13 @@ def render_card(intern: dict, out_dir: Path) -> Path:
 
     final_pdf = out_dir / f"{intern['unique_id']}.pdf"
     build_final_sheet(front_png, back_png, final_pdf)
+
+    # clean up intermediates — only the composed sheet is the deliverable
+    docx_path.unlink(missing_ok=True)
+    card_pdf.unlink(missing_ok=True)
+    for p in pngs:
+        p.unlink(missing_ok=True)
+
     return final_pdf
 
 
